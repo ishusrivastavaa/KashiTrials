@@ -168,14 +168,67 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (isValid) {
-                // Populate Modal content
-                modalMessage.innerHTML = `Thank you, <strong>${nameInput.value.trim()}</strong>! Your pilgrimage request has been successfully received. A luxury travel concierge will call you at <strong>${mobileInput.value.trim()}</strong> within 2 hours to personalize your itinerary.`;
-                
-                // Show modal
-                modalOverlay.classList.add('active');
-                
-                // Reset form
-                bookingForm.reset();
+                // Determine API URL based on host/port
+                const isLocalhost5000 = window.location.port === '5000';
+                const apiUrl = isLocalhost5000 ? '/api/inquiries' : 'http://localhost:5000/api/inquiries';
+
+                const submitBtn = bookingForm.querySelector('button[type="submit"]');
+                const originalBtnText = submitBtn.innerHTML;
+
+                // Disable button and show loading state
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = 'Submitting Request...';
+
+                fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: nameInput.value.trim(),
+                        phone: mobileInput.value.trim(),
+                        email: emailInput.value.trim(),
+                        travelers: parseInt(travelersInput.value, 10),
+                        travelDate: dateInput.value
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(errData => {
+                            throw new Error(errData.message || 'Submission failed');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Populate Modal content
+                    modalMessage.innerHTML = `Thank you, <strong>${nameInput.value.trim()}</strong>! Your pilgrimage request has been successfully received. A luxury travel concierge will call you at <strong>${mobileInput.value.trim()}</strong> within 2 hours to personalize your itinerary.`;
+                    
+                    // Show modal
+                    modalOverlay.classList.add('active');
+                    
+                    // Reset form
+                    bookingForm.reset();
+                })
+                .catch(error => {
+                    console.error('Submission error:', error);
+                    // Show validation or connection error at the bottom of the form
+                    const errorSpan = document.createElement('span');
+                    errorSpan.className = 'form-error-msg';
+                    errorSpan.style.color = '#800000';
+                    errorSpan.style.fontSize = '14px';
+                    errorSpan.style.fontWeight = '600';
+                    errorSpan.style.marginTop = '10px';
+                    errorSpan.style.display = 'block';
+                    errorSpan.style.textAlign = 'center';
+                    errorSpan.innerText = error.message || 'An error occurred. Please try again.';
+                    bookingForm.appendChild(errorSpan);
+                })
+                .finally(() => {
+                    // Restore button state
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                });
             }
         });
 
